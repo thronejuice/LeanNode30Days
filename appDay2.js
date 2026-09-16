@@ -11,29 +11,51 @@ const products = [
   { name: "Webcam", price: 2200, category: "computer", stock: 4 }
 ];
 
+function groupBy(array, key) {
+  return array.reduce((groups, item) => {
+    const group = item[key];
+
+    if (!groups[group]) {
+      groups[group] = [];
+    }
+
+    groups[group].push(item);
+    return groups;
+  }, {});
+}
+
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 const outOfStock = products.filter(product => product.stock === 0);
 
 const totalStockValue = products.reduce((total, product) => {
   return total + product.price * product.stock;
 }, 0);
 
-const categorySummary = products.reduce((acc, product) => {
-  if (!acc[product.category]) {
-    acc[product.category] = { totalPrice: 0, productCount: 0 };
-  }
-
-  acc[product.category].totalPrice += product.price;
-  acc[product.category].productCount += 1;
-  return acc;
-}, {});
+const productsByCategory = groupBy(products, "category");
 
 const averagePriceByCategory = Object.fromEntries(
-  Object.entries(categorySummary).map(([category, summary]) => [
+  Object.entries(productsByCategory).map(([category, categoryProducts]) => [
     category,
-    summary.totalPrice / summary.productCount
+    categoryProducts.reduce((total, product) => total + product.price, 0) /
+      categoryProducts.length
   ])
 );
+
+const manualClone = deepClone(products);
+const nativeClone = structuredClone(products);
+const clonesHaveSameData =
+  JSON.stringify(manualClone) === JSON.stringify(nativeClone);
+
+manualClone[0].stock = 999;
+nativeClone[0].stock = 888;
 
 console.log("สินค้าที่หมดสต็อก:", outOfStock);
 console.log("มูลค่าสต็อกรวม:", totalStockValue);
 console.log("ราคาเฉลี่ยต่อ category:", averagePriceByCategory);
+console.log("สินค้าแยกตาม category:", productsByCategory);
+console.log("deepClone เทียบค่าเท่ากับ structuredClone ก่อนแก้ไข:", clonesHaveSameData);
+console.log("deepClone ไม่เปลี่ยน products ต้นฉบับ:", products[0].stock === 8);
+console.log("deepClone แยก nested object:", manualClone[0] !== products[0]);

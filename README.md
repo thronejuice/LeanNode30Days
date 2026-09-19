@@ -129,7 +129,14 @@ GET /tasks?status=in_progress&priority=high&page=1&limit=20
 ```bash
 npm install
 node app.js
+npm run dev
 ```
+
+### ES module และ CommonJS
+
+ตัวอย่างวันที่ 3 ใช้ ES module ใน `appDay3.mjs` และ import utility จาก `utils/productUtils.mjs` ส่วน `appDay3.js` เป็นตัวอย่างเดียวกันแบบ CommonJS โดยใช้ `require()` และ `module.exports` ผ่าน `utils/productUtils.cjs` การใช้ `.mjs` และ `.cjs` ทำให้สองรูปแบบอยู่ร่วมกันได้โดยไม่กระทบไฟล์การบ้านเดิมที่ใช้ `require()`
+
+ความแตกต่างหลักคือ ES module ใช้ `import`/`export` และเหมาะกับโค้ดสมัยใหม่ที่แยก dependency ชัดเจน ส่วน CommonJS ใช้ `require()`/`module.exports` เป็นรูปแบบดั้งเดิมของ Node.js และยังพบได้มากในโปรเจกต์เดิม
 
 ตัวอย่าง Express API ปัจจุบันอยู่ใน `app5.js` และสามารถกำหนด port ผ่าน `PORT` ได้:
 

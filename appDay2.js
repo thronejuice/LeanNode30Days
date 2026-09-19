@@ -1,3 +1,5 @@
+const { deepClone, groupBy } = require("./utils/productUtils.cjs");
+
 const products = [
   { name: "Keyboard", price: 1200, category: "computer", stock: 8 },
   { name: "Mouse", price: 650, category: "computer", stock: 15 },
@@ -10,23 +12,6 @@ const products = [
   { name: "Water Bottle", price: 480, category: "lifestyle", stock: 10 },
   { name: "Webcam", price: 2200, category: "computer", stock: 4 }
 ];
-
-function groupBy(array, key) {
-  return array.reduce((groups, item) => {
-    const group = item[key];
-
-    if (!groups[group]) {
-      groups[group] = [];
-    }
-
-    groups[group].push(item);
-    return groups;
-  }, {});
-}
-
-function deepClone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
 
 const outOfStock = products.filter(product => product.stock === 0);
 

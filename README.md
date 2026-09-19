@@ -100,6 +100,35 @@ GET /tasks?status=in_progress&priority=high&page=1&limit=20
 - `app4.js`: สร้าง HTTP API ด้วย Node.js core
 - `app5.js`: ย้ายมาใช้ Express, JSON middleware และ API key middleware
 - `app6.js`: อ่าน command-line argument และข้อมูล runtime ของ Node.js
+- `appDay4.js`: ฝึกแปลง callback เป็น Promise, ใช้ `util.promisify`, เรียก API พร้อมกัน, retry และ timeout
+
+## สรุปบทเรียนวันนี้: Promise และงาน asynchronous
+
+### สิ่งที่ได้ฝึก
+
+- เขียน `readFilePromise()` เพื่อห่อ `fs.readFile` ซึ่งเป็น callback ให้ใช้งานด้วย `await` ได้
+- ใช้ `util.promisify(fs.readFile)` เพื่อให้ Node.js แปลง callback เป็น Promise ให้โดยอัตโนมัติ
+- ใช้ `fetch` เรียก `/posts/1`, `/users/1` และ `/todos/1` จาก JSONPlaceholder
+- เปรียบเทียบ `Promise.all` ที่เริ่มงานพร้อมกันกับ `for...of` ที่รอทำทีละงาน และจับเวลาด้วย `performance.now()`
+- เขียน `retry(fn, times, delay)` ให้ลองงานใหม่เมื่อเกิด error และรอระหว่างการลอง
+- เขียน `withTimeout(promise, ms)` ด้วย `Promise.race` เพื่อหยุดรอเมื่อใช้เวลานานเกินกำหนด
+
+### อธิบายแบบเด็ก 5 ขวบ
+
+ลองนึกว่าเราฝากเพื่อนทำงานให้:
+
+- `Promise` คือคำสัญญาว่าเพื่อนจะกลับมาพร้อมคำตอบ
+- `await` คือการยืนรอเพื่อนกลับมาก่อนทำงานต่อ
+- `retry` คือถ้าเพื่อนทำพลาด ก็ให้ลองทำใหม่อีกครั้ง
+- `Promise.all` คือให้เพื่อนหลายคนไปหยิบของพร้อมกัน แล้วรอจนทุกคนกลับมา
+- `Promise.race` คือแข่งกันระหว่างงานจริงกับนาฬิกาปลุก ใครเสร็จก่อนใช้คนนั้น
+- `withTimeout` คือนาฬิกาปลุกที่บอกว่า ถ้ารอนานเกินไปให้หยุดรอ
+
+รันตัวอย่างวันนี้ได้ด้วยคำสั่ง:
+
+```bash
+node appDay4.js
+```
 
 ## ตัวอย่าง bullet สำหรับ CV
 

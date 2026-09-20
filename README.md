@@ -102,6 +102,62 @@ GET /tasks?status=in_progress&priority=high&page=1&limit=20
 - `app6.js`: อ่าน command-line argument และข้อมูล runtime ของ Node.js
 - `appDay4.js`: ฝึกแปลง callback เป็น Promise, ใช้ `util.promisify`, เรียก API พร้อมกัน, retry และ timeout
 - `appDay5.js`: ทดลองลำดับ event loop, เปรียบเทียบ HTTP route ที่บล็อก main thread กับ `worker_threads`
+- `appDay6.js`: สร้าง CLI จดบันทึก, สแกนโฟลเดอร์, จัดไฟล์ตามนามสกุล และดูการเปลี่ยนแปลงด้วย `fs.watch`
+
+## Day 6: File system และ path แบบข้ามระบบปฏิบัติการ
+
+วันนี้ฝึกอ่านและเขียนไฟล์แบบ asynchronous ด้วย `fs/promises` และ `async/await` เพื่อไม่บล็อก server หรือโปรแกรมหลัก ใช้ `path.resolve()` และ `path.join()` แทนการต่อ string เอง ทำให้ path ใช้งานได้ทั้ง Linux และ Windows
+
+### CLI จดบันทึก
+
+คำสั่งทั้งหมดรันจากโฟลเดอร์ `LeanNode30Days` และเก็บข้อมูลไว้ใน `notes.json`:
+
+```bash
+node appDay6.js add "อ่านเรื่อง fs/promises"
+node appDay6.js list
+node appDay6.js search fs
+node appDay6.js remove <id>
+```
+
+ถ้าไม่มี `notes.json` โปรแกรมจะตรวจ error code `ENOENT` แล้วเริ่มด้วยรายการว่างแทนที่จะหยุดทำงาน
+
+### สแกนไฟล์แบบ recursive
+
+คำสั่งนี้แสดง path และขนาดของไฟล์ทั้งหมด รวมไฟล์ในโฟลเดอร์ย่อย:
+
+```bash
+node appDay6.js scan ./โฟลเดอร์ที่ต้องการดู
+```
+
+ใช้ `readdir(folder, { recursive: true, withFileTypes: true })` และ `stat()` เพื่ออ่านขนาดไฟล์ โดยไม่ใช้ฟังก์ชัน Sync
+
+### จัดไฟล์ Downloads แบบปลอดภัย
+
+ควรสร้างโฟลเดอร์จำลองก่อน เช่น `downloads-demo` แล้วทดลอง preview:
+
+```bash
+node appDay6.js organize ./downloads-demo
+```
+
+โปรแกรมจะแสดงแผนการย้ายไฟล์ตามนามสกุล แต่ยังไม่แก้ไฟล์จริง ต้องเพิ่ม `--apply` เมื่อตรวจสอบแล้ว:
+
+```bash
+node appDay6.js organize ./downloads-demo --apply
+```
+
+เช่น `photo.jpg` จะไปอยู่ใน `jpg/` และ `readme.txt` จะไปอยู่ใน `txt/` ไฟล์ที่ไม่มีนามสกุลจะไปอยู่ใน `no-extension/`
+
+### ดูการเปลี่ยนแปลงของไฟล์
+
+```bash
+node appDay6.js watch ./downloads-demo
+```
+
+คำสั่งนี้ใช้ `fs.watch()` และจะแสดง event เมื่อมีการสร้าง แก้ไข หรือลบไฟล์ กด `Ctrl+C` เพื่อหยุด
+
+### ความรู้เรื่อง ESM
+
+ไฟล์ `appDay6.js` ใช้ CommonJS เพื่อให้เข้ากับไฟล์การบ้านเดิมของ repository จึงใช้ `__dirname` ได้โดยตรง ถ้าเขียนเป็น ESM บน Node.js 20.11+ สามารถใช้ `import.meta.dirname` หรือแปลงจาก `import.meta.url` แล้วค่อยส่ง path เข้า `path.join()` ได้ ห้ามต่อ path ด้วยเครื่องหมาย `/` หรือ `\\` เอง เพราะแต่ละระบบปฏิบัติการใช้ตัวคั่นไม่เหมือนกัน
 
 ## Day 5: Event loop และ worker threads
 

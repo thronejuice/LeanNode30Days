@@ -101,6 +101,80 @@ GET /tasks?status=in_progress&priority=high&page=1&limit=20
 - `app5.js`: ย้ายมาใช้ Express, JSON middleware และ API key middleware
 - `app6.js`: อ่าน command-line argument และข้อมูล runtime ของ Node.js
 - `appDay4.js`: ฝึกแปลง callback เป็น Promise, ใช้ `util.promisify`, เรียก API พร้อมกัน, retry และ timeout
+- `appDay5.js`: ทดลองลำดับ event loop, เปรียบเทียบ HTTP route ที่บล็อก main thread กับ `worker_threads`
+
+## Day 5: Event loop และ worker threads
+
+รันตัวอย่างด้วยคำสั่ง:
+
+```bash
+node appDay5.js
+```
+
+### 1. ทดลองคิว asynchronous สามชุด
+
+ในแต่ละชุดมี `process.nextTick()`, `Promise.then()` และ `setTimeout()` เพื่อสังเกตลำดับการทำงาน โดยหลักทั่วไปคือโค้ด synchronous ทำก่อน จากนั้น `nextTick` จะถูกประมวลผลก่อน Promise microtask และ timer จะรอ event loop รอบถัดไป ลำดับบางส่วนอาจเปลี่ยนได้เมื่อ callback ถูกสร้างจาก phase ที่ต่างกัน
+
+### 2. HTTP server ที่บล็อก event loop
+
+เปิด server แล้วลองเรียกสองคำสั่งนี้จากคนละ terminal:
+
+```bash
+curl http://localhost:3000/block
+curl http://localhost:3000/fast
+```
+
+ระหว่างที่ `/block` วนลูปใช้ CPU 5 วินาที `/fast` จะยังไม่ได้รับคำตอบ เพราะ Node.js กำลังติดอยู่ใน JavaScript main thread เดียวกัน
+
+### 3. แก้ด้วย `worker_threads`
+
+ลองเปลี่ยนจาก `/block` เป็น `/worker` แล้วเรียก `/fast` พร้อมกัน:
+
+```bash
+curl http://localhost:3000/worker
+curl http://localhost:3000/fast
+```
+
+คราวนี้ `/fast` ตอบได้ทันที เพราะงาน CPU ถูกย้ายไปทำใน worker thread ส่วน main thread ยังรับ request อื่นได้ การสร้าง worker ต่อ request เหมาะกับตัวอย่างเรียนรู้เท่านั้น งานจริงควรพิจารณา worker pool เพื่อควบคุมจำนวน thread
+
+### บันทึกการเรียนรู้วันนี้
+
+- `main thread` เป็นคนหลักที่รับ request และทำ JavaScript ทีละงาน ถ้าให้ทำงาน CPU หนักด้วย `busyWait()` งานอื่นจะต้องรอจนกว่าจะเสร็จ
+- `workerData` คือข้อมูลที่ส่งไปพร้อมกับการสร้าง `Worker` ในตัวอย่างนี้ส่งค่า `5_000` ไปบอก Worker ให้ทำงานประมาณ 5 วินาที
+- `parentPort.postMessage()` ใช้ส่งผลจาก Worker กลับมาที่ main thread ส่วน `worker.once("message")` ใช้รอรับผลนั้น
+- `/block` ทำให้ `/fast` ช้าลงเพราะวนลูปอยู่บน main thread แต่ `/worker` ย้ายงานหนักไปอีก thread ทำให้ `/fast` ยังตอบได้ทันที
+- ถ้า port `3000` ถูกใช้งานอยู่ จะเกิด `EADDRINUSE` สามารถเลือก port อื่นได้ เช่น `PORT=3100 node appDay5.js`
+
+ผลการทดลองที่สังเกตได้:
+
+```text
+/block แล้วเรียก /fast: /fast ต้องรอประมาณ 5 วินาที
+/worker แล้วเรียก /fast: /fast ตอบได้ภายในเวลาไม่กี่มิลลิวินาที
+```
+
+### แผนภาพ event loop
+
+```mermaid
+flowchart TD
+	A[รับ request หรือเริ่มโปรแกรม] --> B[ทำงาน synchronous บน main thread]
+	B --> C{มี process.nextTick ไหม}
+	C -- ใช่ --> D[ระบาย nextTick queue]
+	C -- ไม่ --> E[ระบาย Promise microtask queue]
+	D --> E
+	E --> F[เข้าสู่ event loop phases]
+	F --> G[timers: setTimeout]
+	F --> H[poll: I/O และ HTTP]
+	F --> I[check: setImmediate]
+	G --> J[วนกลับไปตรวจคิว microtask]
+	H --> J
+	I --> J
+	J --> F
+	B --> K[งาน CPU หนักบน main thread]
+	K --> L[บล็อกทุก route จนงานเสร็จ]
+	B --> M[ส่งงาน CPU ไป worker thread]
+	M --> N[main thread รับ route อื่นต่อได้]
+	N --> O[worker ส่งผลกลับผ่าน message]
+```
 
 ## สรุปบทเรียนวันนี้: Promise และงาน asynchronous
 

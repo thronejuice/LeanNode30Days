@@ -103,6 +103,26 @@ GET /tasks?status=in_progress&priority=high&page=1&limit=20
 - `appDay4.js`: ฝึกแปลง callback เป็น Promise, ใช้ `util.promisify`, เรียก API พร้อมกัน, retry และ timeout
 - `appDay5.js`: ทดลองลำดับ event loop, เปรียบเทียบ HTTP route ที่บล็อก main thread กับ `worker_threads`
 - `appDay6.js`: สร้าง CLI จดบันทึก, สแกนโฟลเดอร์, จัดไฟล์ตามนามสกุล และดูการเปลี่ยนแปลงด้วย `fs.watch`
+- `appDay7.js`: ฝึก `EventEmitter`, order events, การจัดการ `error`, `events.once()` และ emitter แบบเขียนเอง
+
+## Day 7: Event-driven architecture
+
+รันตัวอย่างด้วยคำสั่ง:
+
+```bash
+node appDay7.js
+```
+
+`OrderService` สืบทอดจาก `EventEmitter` และส่ง event ตามวงจรคำสั่งซื้อ:
+
+- `order:created`: listener ส่งอีเมล ตัดสต็อก และเขียน log ทำงานแยกกันได้ โดย service ไม่ต้องรู้รายละเอียดของ listener
+- `order:paid`: listener เขียน log และออกใบเสร็จ โดย `once()` ทำงานเพียงครั้งเดียว
+- `order:cancelled`: listener แจ้งเหตุผลการยกเลิก
+- `error`: มี listener จัดการ error อย่างถูกต้อง เพราะถ้า emit `error` โดยไม่มี listener Node.js จะทำให้โปรแกรม crash
+
+ตัวอย่าง `waitForPaidOrder()` ใช้ `once(orders, "order:paid")` เป็น Promise แล้ว `await` รอ event เดียว ก่อนให้ service จำลองการจ่ายเงินด้วย `setTimeout`
+
+โค้ดมีฟังก์ชันถอด listener ด้วย `off()` และแสดงจำนวน listener ที่เหลือ เพื่อเตือนเรื่อง memory leak จากการเพิ่ม listener ซ้ำโดยไม่ลบออก ส่วน `SimpleEmitter` เป็นโบนัสที่เขียน `on`, `emit` และ `off` ด้วย `Map` และ array ด้วยตัวเอง
 
 ## Day 6: File system และ path แบบข้ามระบบปฏิบัติการ
 
